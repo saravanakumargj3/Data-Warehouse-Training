@@ -84,7 +84,7 @@ ORDER BY UnitPrice DESC;
 
 --16. Products restocked in last 10 days from today (Assuming today is 2025-05-01)
 SELECT * FROM ProductInventory
-WHERE LastRestocked >= DATEADD(DAY, -10, '2025-05-01');
+WHERE LastRestocked >= DATEADD(DAY, -10, '2025-05-01'); --DATEADD(interval, number, date)
 
 --17. Total quantity grouped by Supplier
 SELECT Supplier, SUM(Quantity) AS TotalQuantity
