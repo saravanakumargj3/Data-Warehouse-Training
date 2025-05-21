@@ -1,0 +1,95 @@
+1) Create a New Database Called bugtracker
+test> use bugtracker
+switched to db bugtracker
+
+2) Insert 3 Bug Reports into the bugs Collection
+bugtracker> db.bugs.insertMany([
+...   {
+...     title: "Login button not working",
+...     reportedBy: "Alice",
+...     status: "open",
+...     priority: "high",
+...     createdAt: new Date() // current date
+...   },
+...   {
+...     title: "Page crashes on reload",
+...     reportedBy: "Bob",
+...     status: "in progress",
+...     priority: "medium",
+...     createdAt: new Date("2024-12-10T10:30:00Z") // fixed past date
+...   },
+...   {
+...     title: "Spelling mistake on homepage",
+...     reportedBy: "Test User",
+...     status: "closed",
+...     priority: "low",
+...     createdAt: new Date("2023-08-05T15:45:00Z") // fixed older date
+...   }
+... ])
+...
+{
+  acknowledged: true,
+  insertedIds: {
+    '0': ObjectId('682db41e084e78067e6c4bd0'),
+    '1': ObjectId('682db41e084e78067e6c4bd1'),
+    '2': ObjectId('682db41e084e78067e6c4bd2')
+  }
+}
+
+3) Query Bugs with status: "open" and priority: "high"
+bugtracker> db.bugs.find({
+...   status: "open",
+...   priority: "high"
+... })
+...
+[
+  {
+    _id: ObjectId('682db41e084e78067e6c4bd0'),
+    title: 'Login button not working',
+    reportedBy: 'Alice',
+    status: 'open',
+    priority: 'high',
+    createdAt: ISODate('2025-05-21T11:08:14.124Z')
+  }
+]
+
+4) Update the status of a Specific Bug to "closed"
+bugtracker> db.bugs.updateOne(
+...   { title: "Login button not working" },
+...   { $set: { status: "closed" } }
+... )
+...
+{
+  acknowledged: true,
+  insertedId: null,
+  matchedCount: 1,
+  modifiedCount: 1,
+  upsertedCount: 0
+}
+
+
+5) Delete the Bug Reported by "Test User"
+bugtracker> db.bugs.deleteOne({ reportedBy: "Test User" })
+{ acknowledged: true, deletedCount: 1 }
+
+
+Check Final State:
+bugtracker> db.bugs.find().pretty()
+[
+  {
+    _id: ObjectId('682db41e084e78067e6c4bd0'),
+    title: 'Login button not working',
+    reportedBy: 'Alice',
+    status: 'closed',
+    priority: 'high',
+    createdAt: ISODate('2025-05-21T11:08:14.124Z')
+  },
+  {
+    _id: ObjectId('682db41e084e78067e6c4bd1'),
+    title: 'Page crashes on reload',
+    reportedBy: 'Bob',
+    status: 'in progress',
+    priority: 'medium',
+    createdAt: ISODate('2024-12-10T10:30:00.000Z')
+  }
+]
