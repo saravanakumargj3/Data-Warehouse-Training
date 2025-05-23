@@ -1,0 +1,128 @@
+MongoDB Exercise Set #2: Project & Task Tracker
+
+Section 1: Basic Document Modeling & Insertion
+
+1. Create the database
+academia> use taskmanager
+switched to db taskmanager
+
+2. Insert users
+taskmanager> db.users.insertMany([
+...   { name: "Alice", email: "alice@example.com", role: "admin", active: true },
+...   { name: "Bob", email: "bob@example.com", role: "manager", active: true },
+...   { name: "Charlie", email: "charlie@example.com", role: "developer", active: false }
+... ])
+
+3. Insert projects with embedded createdBy
+taskmanager> const user = db.users.findOne({ name: "Alice" }) // Getting user _id
+...
+... db.projects.insertMany([
+...   {
+...     title: "Website Redesign",
+...     description: "UI and UX overhaul",
+...     startDate: new Date("2024-04-01"),
+...     status: "active",
+...     createdBy: { _id: user._id, name: user.name }
+...   },
+...   {
+...     title: "Mobile App",
+...     description: "Build Android and iOS versions",
+...     startDate: new Date("2023-12-15"),
+...     status: "completed",
+...     createdBy: { _id: user._id, name: user.name }
+...   }
+... ])
+
+4. Insert tasks
+taskmanager> const bob = db.users.findOne({ name: "Bob" });
+... const charlie = db.users.findOne({ name: "Charlie" });
+... const project1 = db.projects.findOne({ title: "Website Redesign" });
+...
+... db.tasks.insertMany([
+...   { title: "Design mockups", assignedTo: bob._id, projectId: project1._id, priority: "high", dueDate: new Date("2024-05-20"), status: "in progress" },
+...   { title: "Frontend dev", assignedTo: charlie._id, projectId: project1._id, priority: "medium", dueDate: new Date("2024-06-01"), status: "open" },
+...   { title: "Backend API", assignedTo: bob._id, projectId: project1._id, priority: "high", dueDate: new Date("2024-05-25"), status: "open" },
+...   { title: "Testing", assignedTo: charlie._id, projectId: project1._id, priority: "low", dueDate: new Date("2024-06-15"), status: "pending" },
+...   { title: "Deployment", assignedTo: bob._id, projectId: project1._id, priority: "high", dueDate: new Date("2024-07-01"), status: "open" }
+... ])
+
+Section 2: Filtering & Querying
+
+5. High-priority tasks not completed
+taskmanager> db.tasks.find({ priority: "high", status: { $ne: "completed" } })
+
+6. Active developers
+taskmanager> db.users.find({ role: "developer", active: true })
+
+7. Tasks for a specific user
+taskmanager> db.tasks.find({ assignedTo: ObjectId("68304b2c34c23d07b06c4bdd") })
+
+8. Projects started in last 30 days
+taskmanager> const thirtyDaysAgo = new Date();
+... thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+...
+... db.projects.find({ startDate: { $gte: thirtyDaysAgo } })
+
+Section 3: Update Operations
+
+9. Mark a task as completed
+taskmanager> db.tasks.updateOne({ title: "Backend API" }, { $set: { status: "completed" } })
+
+10. Add new role teamLead
+taskmanager> db.users.updateOne({ name: "Bob" }, { $set: { role: "teamLead" } })
+
+11. Add tag array to a task
+taskmanager> db.tasks.updateOne({ title: "Frontend dev" }, { $set: { tags: ["urgent", "frontend"] } })
+
+Section 4: Array & Sub-document Operations
+
+12. Add "UI" tag using $addToSet
+taskmanager> db.tasks.updateOne({ title: "Frontend dev" }, { $addToSet: { tags: "UI" } })
+
+13. Remove "frontend" from tags
+taskmanager> db.tasks.updateOne({ title: "Frontend dev" }, { $pull: { tags: "frontend" } })
+
+14. Increment project progress by 10
+taskmanager> db.projects.updateOne({ title: "Website Redesign" }, { $inc: { progress: 10 } })
+
+Section 5: Aggregation & Lookup
+
+15. Join tasks with users and show task title + assignee name
+taskmanager> db.tasks.aggregate([
+...   {
+...     $lookup: {
+...       from: "users",
+...       localField: "assignedTo",
+...       foreignField: "_id",
+...       as: "assignee"
+...     }
+...   },
+...   { $unwind: "$assignee" },
+...   { $project: { title: 1, assigneeName: "$assignee.name" } }
+... ])
+
+16. Join tasks with projects and filter for active ones
+taskmanager> db.tasks.aggregate([
+...   {
+...     $lookup: {
+...       from: "projects",
+...       localField: "projectId",
+...       foreignField: "_id",
+...       as: "project"
+...     }
+...   },
+...   { $unwind: "$project" },
+...   { $match: { "project.status": "active" } }
+... ])
+
+17. Group tasks by status
+taskmanager> db.tasks.aggregate([
+...   { $group: { _id: "$status", count: { $sum: 1 } } }
+... ])
+
+18. Top 3 soonest due tasks
+taskmanager> db.tasks.aggregate([
+...   { $match: { status: { $ne: "completed" } } },
+...   { $sort: { dueDate: 1 } },
+...   { $limit: 3 }
+... ])
