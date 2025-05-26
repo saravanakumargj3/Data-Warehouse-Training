@@ -1,0 +1,166 @@
+1: Create and Use the Database
+schooldb> use universityDB
+switched to db universityDB
+
+2: Insert a New Student Record
+universityDB> db.students.insertOne({
+...   name: "Ayaan Khan",
+...   age: 21,
+...   gender: "Male",
+...   department: "Computer Science",
+...   courses: [
+...     { name: "MongoDB", score: 85 },
+...     { name: "Python", score: 90 }
+...   ],
+...   address: {
+...     city: "Hyderabad",
+...     state: "Telangana",
+...     pincode: 500032
+...   },
+...   enrollmentDate: ISODate("2024-08-01T00:00:00Z"),
+...   isActive: true
+... })
+
+3: Update Score for Python Course
+universityDB> db.students.updateOne(
+...   { name: "Ayaan Khan", "courses.name": "Python" },
+...   { $set: { "courses.$.score": 95 } }
+... )
+
+4: Delete Student "John Doe"
+universityDB> db.students.deleteOne({ name: "John Doe" })
+
+5: Find All Students in "Computer Science"
+universityDB> db.students.find({ department: "Computer Science" })
+
+6: Age > 20
+universityDB> db.students.find({ age: { $gt: 20 } })
+
+7: Enrollment Between Two Dates
+universityDB> db.students.find({
+...   enrollmentDate: {
+...     $gte: ISODate("2024-07-01T00:00:00Z"),
+...     $lte: ISODate("2024-09-01T00:00:00Z")
+...   }
+... })
+
+8: Department is "Computer Science" or "Mathematics"
+universityDB> db.students.find({
+...   department: { $in: ["Computer Science", "Mathematics"] }
+... })
+
+9: Department NOT "Mechanical"
+universityDB> db.students.find({
+...   department: { $ne: "Mechanical" }
+... })
+
+10: Students with Course Score > 80
+universityDB> db.students.find({
+...   "courses.score": { $gt: 80 }
+... })
+
+11: Group by Department and Count Students
+universityDB> db.students.aggregate([
+...   { $group: { _id: "$department", totalStudents: { $sum: 1 } } }
+... ])
+
+12: Average Age Per Department
+universityDB> db.students.aggregate([
+...   { $group: { _id: "$department", averageAge: { $avg: "$age" } } }
+... ])
+
+13: Sort Students by Total Course Score
+universityDB> db.students.aggregate([
+...   {
+...     $project: {
+...       name: 1,
+...       totalScore: { $sum: "$courses.score" }
+...     }
+...   },
+...   { $sort: { totalScore: -1 } }
+... ])
+
+14: Filter Only Active Students Before Aggregation
+universityDB> db.students.aggregate([
+...   { $match: { isActive: true } },
+...   {
+...     $group: {
+...       _id: "$department",
+...       activeCount: { $sum: 1 }
+...     }
+...   }
+... ])
+
+15: Group and List Unique Cities
+universityDB> db.students.aggregate([
+...   {
+...     $group: {
+...       _id: null,
+...       cities: { $addToSet: "$address.city" }
+...     }
+...   }
+... ])
+
+16: Show Only name, department, and city
+universityDB> db.students.find(
+...   {},
+...   {
+...     _id: 0,
+...     name: 1,
+...     department: 1,
+...     "address.city": 1
+...   }
+... )
+
+17: Show Name and Total Score Using $project
+universityDB> db.students.aggregate([
+...   {
+...     $project: {
+...       _id: 0,
+...       name: 1,
+...       totalScore: { $sum: "$courses.score" }
+...     }
+...   }
+... ])
+
+18: Query Where address.city = "Hyderabad"
+universityDB> db.students.find({ "address.city": "Hyderabad" })
+
+19: Update Address Pincode
+universityDB> db.students.updateOne(
+...   { name: "Ayaan Khan" },
+...   { $set: { "address.pincode": 500033 } }
+... )
+
+20: Add landmark Field to All Address Objects
+universityDB> db.students.updateMany(
+...   {},
+...   { $set: { "address.landmark": "Near Bus Stop" } }
+... )
+
+21: Add New Course "Node.js"
+universityDB> db.students.updateOne(
+...   { name: "Ayaan Khan" },
+...   { $push: { courses: { name: "Node.js", score: 88 } } }
+... )
+
+22: Remove Course Named "MongoDB"
+universityDB> db.students.updateOne(
+...   { name: "Ayaan Khan" },
+...   { $pull: { courses: { name: "MongoDB" } } }
+... )
+
+23: Find Students with Both Python and MongoDB Courses
+universityDB> db.students.find({
+...   "courses.name": { $all: ["Python", "MongoDB"] }
+... })
+
+24: Use $elemMatch to Query Students with MongoDB Score > 80
+universityDB> db.students.find({
+...   courses: {
+...     $elemMatch: {
+...       name: "MongoDB",
+...       score: { $gt: 80 }
+...     }
+...   }
+... })
