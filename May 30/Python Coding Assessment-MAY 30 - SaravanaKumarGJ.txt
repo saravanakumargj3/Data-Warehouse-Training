@@ -1,0 +1,195 @@
+# Section 1: Python Basics & Control Flow
+# Q1. Print all odd numbers between 10 and 50
+for num in range(11, 50, 2): #using simple logic of skip, but can also use if num%2!=0 then print
+    print(num)
+
+# Q2. Leap year checker
+def is_leap_year(year):
+    return (year % 4 == 0 and year % 100 != 0) or (year % 400 == 0)
+#div by 4, not div by 100 or 400
+# print(is_leap_year(2024)) #returns true or false
+if is_leap_year(2023):
+    print("Leap Year")
+else:
+    print("Not a leap year")
+
+# Q3. Count how many times 'a' appears in a string
+string = "Data analysis and AI"
+count = string.lower().count('a') # can use inbuilt function w/o loops
+print(f"'a' appears {count} times.")
+#or - actual soln
+input_str = "Data analysis and AI"
+ct = 0
+for char in input_str:
+    if char.lower() == 'a':
+        ct += 1
+print(f"The letter 'a' appears {ct} times.")
+
+# Section 2: Collections (Lists, Tuples, Sets, Dicts)
+# Q4. Create a dictionary from two lists
+keys = ['a', 'b', 'c']
+values = [100, 200, 300]
+my_dict = dict(zip(keys, values)) #Use zip to pair elements from two lists
+print(my_dict)
+
+# Q5. Salary Analysis
+salaries = [50000, 60000, 55000, 70000, 52000]
+
+max_salary = max(salaries)
+average_salary = sum(salaries) / len(salaries)
+above_avg = [sal for sal in salaries if sal > average_salary] #add to list if over avg
+sorted_desc = sorted(salaries, reverse=True) #reversed ascending
+print("Avg:", average_salary) #57400
+print("Max:", max_salary)
+print("Above Avg:", above_avg)
+print("Sorted Desc:", sorted_desc)
+
+# Q6. Sets and Differences
+a = [1, 2, 3, 4]
+b = [3, 4, 5, 6]
+set_a = set(a)
+set_b = set(b)
+diff = set_a.difference(set_b)
+
+print("Set A:", set_a)
+print("Set B:", set_b)
+print("Difference (A - B):", diff)#exist in a but not in b
+
+# Section 3: Functions & Classes
+# Q7. Employee class
+class Employee:
+    def __init__(self, name, salary):
+        self.name = name
+        self.salary = salary
+    def display(self):
+        print(f"Name: {self.name}, Salary: {self.salary}")
+    def is_high_earner(self):
+        return self.salary > 60000
+
+# Q8. Project class inherits from Employee
+class Project(Employee):
+    def __init__(self, name, salary, project_name, hours_allocated):
+        super().__init__(name, salary)
+        self.project_name = project_name
+        self.hours_allocated = hours_allocated
+
+    def display_project(self):
+        self.display()
+        print(f"Project: {self.project_name}, Hours Allocated: {self.hours_allocated}")
+
+# Q9. Instantiate 3 employees and check if they are high earners
+emp1 = Employee("SK", 50000)
+emp2 = Employee("SH", 65000)
+emp3 = Employee("GJ", 70000)
+
+print("=== Employee Details ===")
+for emp in [emp1, emp2, emp3]:  # traverse and call funcs
+    emp.display()
+    if emp.is_high_earner():
+        print(f"{emp.name} is a high earner.\n")
+    else:
+        print(f"{emp.name} is NOT a high earner.\n")
+
+print("=== Project Details ===")
+proj1 = Project("SH", 65000, "AI Chatbot", 120)
+proj2 = Project("GJ", 70000, "Cloud Migration", 100)
+
+proj1.display_project()
+print() #blank line
+proj2.display_project()
+
+# Section 4: File Handling
+# Q10. Write IT employees to a file
+import pandas as pd
+
+employees = pd.read_csv("employees.csv")
+it_employees = employees[employees["Department"] == "IT"]
+
+with open("it_employees.txt", "w") as f: #a new txt file is generated
+    for name in it_employees["Name"]:
+        f.write(name + "\n")
+
+# Q11. Read file and count words
+with open("it_employees.txt", "r") as f:
+    content = f.read()
+    word_count = len(content.split()) #splits the words and returns its length
+
+print("Total words:", word_count)
+
+# Section 5: Exception Handling
+# Q12. Square of a number with input validation
+try:
+    num = int(input("Enter a number: "))
+    print("Square is:", num ** 2)
+except ValueError: #checks if num is being given as input
+    print("Invalid input! Please enter a number.")
+
+# Q13. ZeroDivisionError Handling
+def divide(a, b):
+    try:
+        return a / b
+    except ZeroDivisionError:
+        return "Cannot divide by zero."
+
+print(divide(10, 0))
+
+# Section 6: Pandas – Reading & Exploring CSVs
+# Q14. Load CSVs
+import pandas as pd
+
+employees = pd.read_csv("employees.csv")
+# print(employees.head())
+projects = pd.read_csv("projects.csv")
+# print(projects.head())
+
+# Q15. Display details
+print(employees.head(2)) #first 2
+
+print("Unique Departments are: ",employees["Department"].unique())
+
+print(employees.groupby("Department")["Salary"].mean())
+
+# Q16. Add TenureInYears
+from datetime import datetime
+
+current_year = datetime.now().year
+employees["JoiningDate"] = pd.to_datetime(employees["JoiningDate"]) #convert joining date into year
+employees["TenureInYears"] = current_year - employees["JoiningDate"].dt.year
+
+print(employees[["Name", "TenureInYears"]])
+
+# Section 7: Filtering, Aggregation, Sorting
+# Q17. Filter IT employees with salary > 60000
+high_paid_it = employees[(employees["Department"] == "IT") & (employees["Salary"] > 60000)]
+print(high_paid_it)
+
+# Q18. Group by Department
+dept_group = employees.groupby("Department").agg(
+    EmployeeCount=('EmployeeID', 'count'),
+    TotalSalary=('Salary', 'sum'),
+    AvgSalary=('Salary', 'mean')
+)
+print(dept_group)
+
+# Q19. Sort by salary descending
+sorted_emps = employees.sort_values(by="Salary", ascending=False)
+print(sorted_emps)
+
+# Section 8: Joins & Merging
+# Q20. Merge employee & project
+merged_df = pd.merge(employees, projects, on="EmployeeID") #key as empid
+print(merged_df)
+
+# # Q21. Employees not working on any project
+left_join = pd.merge(employees, projects, on="EmployeeID", how="left")
+no_project = left_join[left_join["ProjectID"].isna()] #isnull, NaN
+print(no_project[["EmployeeID", "Name"]])
+
+# Q22. Add TotalCost
+merged_df["TotalCost"] = merged_df["HoursAllocated"] * (merged_df["Salary"] / 160)
+print(merged_df[["Name", "ProjectName", "TotalCost"]])
+
+#convert into dataset
+merged_df.to_csv("merged_with_totalcost.csv", index=False)
+
+print("File 'merged_with_totalcost.csv' created with TotalCost column.")
