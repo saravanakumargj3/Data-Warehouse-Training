@@ -1,0 +1,5 @@
+room_id,total_energy_kwh,avg_energy_kwh,reading_count
+1,0.53,0.1767,3
+2,0.95,0.475,2
+3,2.72,0.68,4
+4,0.05,0.05,1
