@@ -1,0 +1,33 @@
+// Use or create the database
+test> use ExpenseDB;
+switched to db ExpenseDB
+
+// Define the Receipts collection
+ExpenseDB> const receipts = db.Receipts;
+
+// Insert a sample receipt document
+ExpenseDB> receipts.insertOne({
+...   user_id: ObjectId("60c5ba2e5f9e3c06b8f5a1d0"), // Replace with a valid ObjectId
+...   date: new Date("2025-06-01"),
+...   category: "Groceries",
+...   notes: "Bought from SuperMart",
+...   receipt: {
+...     store: "SuperMart",
+...     items: [
+...       { item: "Rice", price: 200 },
+...       { item: "Milk", price: 50 }
+...     ],
+...     total: 250
+...   }
+... });
+
+// Create indexes for quick lookups
+ExpenseDB> receipts.createIndex({ user_id: 1 });
+user_id_1
+ExpenseDB> receipts.createIndex({ "receipt.store": 1 });
+receipt.store_1
+
+// Confirmation log
+print("Sample receipt inserted and indexes created successfully.");
+
+//Can use the commands as a .js file and run it in mongosh
