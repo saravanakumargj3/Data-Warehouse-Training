@@ -1,0 +1,46 @@
+ExpenseDB> use EnergyDB
+switched to db EnergyDB
+
+
+// Insert sample sensor readings (JSON format)
+EnergyDB> db.SensorLogs.insertMany([
+...     {
+...         "device_id": 1,
+...         "timestamp": ISODate("2025-06-02T10:00:00Z"),
+...         "energy_kwh": 0.15,
+...         "voltage": 220,
+...         "current": 0.68
+...     },
+...     {
+...         "device_id": 1,
+...         "timestamp": ISODate("2025-06-02T10:01:00Z"),
+...         "energy_kwh": 0.14,
+...         "voltage": 221,
+...         "current": 0.65
+...     },
+...     {
+...         "device_id": 2,
+...         "timestamp": ISODate("2025-06-02T10:00:00Z"),
+...         "energy_kwh": 0.20,
+...         "voltage": 219,
+...         "current": 0.91
+...     }
+... ]);
+
+// Create indexes for quick lookup
+EnergyDB> db.SensorLogs.createIndex({ "device_id": 1 });
+device_id_1
+EnergyDB> db.SensorLogs.createIndex({ "timestamp": 1 });
+timestamp_1
+
+
+// Example query to verify indexes
+EnergyDB> db.SensorLogs.getIndexes();
+[
+  { v: 2, key: { _id: 1 }, name: '_id_' },
+  { v: 2, key: { device_id: 1 }, name: 'device_id_1' },
+  { v: 2, key: { timestamp: 1 }, name: 'timestamp_1' }
+]
+
+// Example query to fetch logs for a specific device
+EnergyDB> db.SensorLogs.find({ "device_id": 1 }).sort({ "timestamp": -1 });
