@@ -1,0 +1,8 @@
+user_id,category,amount,date,description
+1,Groceries,500.00,2025-06-01,Groceries at SuperMart
+1,Utilities,1200.00,2025-06-05,Electricity bill
+1,Entertainment,300.00,2025-06-10,Netflix subscription
+1,Groceries,650.00,2025-06-20,Monthly ration
+1,Transport,200.00,2025-06-25,Fuel expense
+2,Groceries,450.00,2025-06-02,Weekly shopping
+2,Utilities,1000.00,2025-06-06,Gas bill
