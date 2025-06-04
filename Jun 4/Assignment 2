@@ -1,0 +1,273 @@
+
+
+# Install Java and Spark (Updated link)
+!apt-get install openjdk-11-jdk -y -qq
+!wget -q https://archive.apache.org/dist/spark/spark-3.4.1/spark-3.4.1-bin-hadoop3.tgz
+!tar -xzf spark-3.4.1-bin-hadoop3.tgz
+!pip install -q findspark
+
+# Set environment variables
+import os
+os.environ["JAVA_HOME"] = "/usr/lib/jvm/java-11-openjdk-amd64"
+os.environ["SPARK_HOME"] = "/content/spark-3.4.1-bin-hadoop3"
+
+# Initialize findspark
+import findspark
+findspark.init()
+
+# Start Spark session (NO Hive support on Colab!)
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import *
+
+spark = SparkSession.builder.appName("PracticeProject").getOrCreate()
+
+     
+
+# Data
+customers_data = [
+    (101, 'Ali', 'ali@gmail.com', 'Mumbai', '2022-05-10'),
+    (102, 'Neha', 'neha@yahoo.com', 'Delhi', '2023-01-15'),
+    (103, 'Ravi', 'ravi@hotmail.com', 'Bangalore', '2021-11-01'),
+    (104, 'Sneha', 'sneha@outlook.com', 'Hyderabad', '2020-07-22'),
+    (105, 'Amit', 'amit@gmail.com', 'Chennai', '2023-03-10'),
+]
+
+orders_data = [
+    (1, 101, 'Laptop', 'Electronics', 2, 50000.0, '2024-01-10'),
+    (2, 101, 'Mouse', 'Electronics', 1, 1200.0, '2024-01-15'),
+    (3, 102, 'Tablet', 'Electronics', 1, 20000.0, '2024-02-01'),
+    (4, 103, 'Bookshelf', 'Furniture', 1, 3500.0, '2024-02-10'),
+    (5, 104, 'Mixer', 'Appliances', 1, 5000.0, '2024-02-15'),
+    (6, 105, 'Notebook', 'Stationery', 5, 500.0, '2024-03-01'),
+    (7, 102, 'Phone', 'Electronics', 1, 30000.0, '2024-03-02'),
+]
+
+# Create DataFrames
+customers_df = spark.createDataFrame(customers_data, ["CustomerID", "Name", "Email", "City", "SignupDate"])
+orders_df = spark.createDataFrame(orders_data, ["OrderID", "CustomerID", "Product", "Category", "Quantity", "Price", "OrderDate"])
+
+# Register as temp views for SQL queries
+customers_df.createOrReplaceTempView("customers")
+orders_df.createOrReplaceTempView("orders")
+
+     
+
+# 1. Add TotalAmount column
+orders_df = orders_df.withColumn("TotalAmount", col("Price") * col("Quantity"))
+
+     
+
+# 2. Filter orders with TotalAmount > 10000
+orders_df.filter(col("TotalAmount") > 10000).show()
+
+# 3. Standardize City field
+customers_df = customers_df.withColumn("City", lower(col("City")))
+
+# 4. Extract year from OrderDate
+orders_df = orders_df.withColumn("OrderYear", year(to_date("OrderDate")))
+
+# 5. Fill null values in any column (example: Category with 'Unknown')
+orders_df = orders_df.fillna({'Category': 'Unknown'})
+
+# 6. Categorize orders using when/otherwise
+orders_df = orders_df.withColumn(
+    "OrderCategory",
+    when(col("TotalAmount") < 5000, "Low")
+    .when(col("TotalAmount").between(5000, 20000), "Medium")
+    .otherwise("High")
+)
+
+orders_df.select("Product", "TotalAmount", "OrderCategory").show()
+     
++-------+----------+-------+-----------+--------+-------+----------+-----------+
+|OrderID|CustomerID|Product|   Category|Quantity|  Price| OrderDate|TotalAmount|
++-------+----------+-------+-----------+--------+-------+----------+-----------+
+|      1|       101| Laptop|Electronics|       2|50000.0|2024-01-10|   100000.0|
+|      3|       102| Tablet|Electronics|       1|20000.0|2024-02-01|    20000.0|
+|      7|       102|  Phone|Electronics|       1|30000.0|2024-03-02|    30000.0|
++-------+----------+-------+-----------+--------+-------+----------+-----------+
+
++---------+-----------+-------------+
+|  Product|TotalAmount|OrderCategory|
++---------+-----------+-------------+
+|   Laptop|   100000.0|         High|
+|    Mouse|     1200.0|          Low|
+|   Tablet|    20000.0|       Medium|
+|Bookshelf|     3500.0|          Low|
+|    Mixer|     5000.0|       Medium|
+| Notebook|     2500.0|          Low|
+|    Phone|    30000.0|         High|
++---------+-----------+-------------+
+
+
+# Re-register updated views
+customers_df.createOrReplaceTempView("customers")
+orders_df.createOrReplaceTempView("orders")
+     
+
+# 7. All orders made by "Ali"
+spark.sql("""
+    SELECT * FROM orders o
+    JOIN customers c ON o.CustomerID = c.CustomerID
+    WHERE c.Name = 'Ali'
+""").show()
+     
++-------+----------+-------+-----------+--------+-------+----------+-----------+---------+-------------+----------+----+-------------+------+----------+
+|OrderID|CustomerID|Product|   Category|Quantity|  Price| OrderDate|TotalAmount|OrderYear|OrderCategory|CustomerID|Name|        Email|  City|SignupDate|
++-------+----------+-------+-----------+--------+-------+----------+-----------+---------+-------------+----------+----+-------------+------+----------+
+|      1|       101| Laptop|Electronics|       2|50000.0|2024-01-10|   100000.0|     2024|         High|       101| Ali|ali@gmail.com|mumbai|2022-05-10|
+|      2|       101|  Mouse|Electronics|       1| 1200.0|2024-01-15|     1200.0|     2024|          Low|       101| Ali|ali@gmail.com|mumbai|2022-05-10|
++-------+----------+-------+-----------+--------+-------+----------+-----------+---------+-------------+----------+----+-------------+------+----------+
+
+
+# 8. Total spending by each customer
+spark.sql("""
+    SELECT c.Name, SUM(o.TotalAmount) AS TotalSpent
+    FROM orders o
+    JOIN customers c ON o.CustomerID = c.CustomerID
+    GROUP BY c.Name
+""").show()
+     
++-----+----------+
+| Name|TotalSpent|
++-----+----------+
+| Ravi|    3500.0|
+|Sneha|    5000.0|
+| Amit|    2500.0|
+| Neha|   50000.0|
+|  Ali|  101200.0|
++-----+----------+
+
+
+# 9. Category with highest total revenue
+spark.sql("""
+    SELECT Category, SUM(TotalAmount) AS Revenue
+    FROM orders
+    GROUP BY Category
+    ORDER BY Revenue DESC
+    LIMIT 1
+""").show()
+     
++-----------+--------+
+|   Category| Revenue|
++-----------+--------+
+|Electronics|151200.0|
++-----------+--------+
+
+
+# 10. Create view: customer_orders
+customer_orders = spark.sql("""
+    SELECT c.Name AS CustomerName, o.Product, o.TotalAmount
+    FROM orders o
+    JOIN customers c ON o.CustomerID = c.CustomerID
+""")
+customer_orders.createOrReplaceTempView("customer_orders")
+     
+
+
+# 11. Query view for products ordered after Feb 2024
+spark.sql("""
+    SELECT * FROM customer_orders co
+    JOIN orders o ON co.Product = o.Product
+    WHERE o.OrderDate > '2024-02-01'
+""").show()
+     
++------------+---------+-----------+-------+----------+---------+-----------+--------+-------+----------+-----------+---------+-------------+
+|CustomerName|  Product|TotalAmount|OrderID|CustomerID|  Product|   Category|Quantity|  Price| OrderDate|TotalAmount|OrderYear|OrderCategory|
++------------+---------+-----------+-------+----------+---------+-----------+--------+-------+----------+-----------+---------+-------------+
+|        Neha|    Phone|    30000.0|      7|       102|    Phone|Electronics|       1|30000.0|2024-03-02|    30000.0|     2024|         High|
+|        Ravi|Bookshelf|     3500.0|      4|       103|Bookshelf|  Furniture|       1| 3500.0|2024-02-10|     3500.0|     2024|          Low|
+|        Amit| Notebook|     2500.0|      6|       105| Notebook| Stationery|       5|  500.0|2024-03-01|     2500.0|     2024|          Low|
+|       Sneha|    Mixer|     5000.0|      5|       104|    Mixer| Appliances|       1| 5000.0|2024-02-15|     5000.0|     2024|       Medium|
++------------+---------+-----------+-------+----------+---------+-----------+--------+-------+----------+-----------+---------+-------------+
+
+
+# 12. Global temp view
+customers_df.createOrReplaceGlobalTempView("customers")
+spark.sql("SELECT * FROM global_temp.customers WHERE City = 'mumbai'").show()
+     
++----------+----+-------------+------+----------+
+|CustomerID|Name|        Email|  City|SignupDate|
++----------+----+-------------+------+----------+
+|       101| Ali|ali@gmail.com|mumbai|2022-05-10|
++----------+----+-------------+------+----------+
+
+
+# 13. Save orders_df (with TotalAmount) to Parquet
+orders_df.write.mode("overwrite").parquet("/content/orders_output")
+     
+
+
+# 14. Read back Parquet and count orders
+orders_parquet = spark.read.parquet("/content/orders_output")
+print("Total orders in parquet:", orders_parquet.count())
+     
+Total orders in parquet: 7
+
+from pyspark.sql.types import StringType
+
+# 15. UDF to mask emails (e.g., a***@gmail.com)
+def mask_email(email):
+    parts = email.split("@")
+    return parts[0][0] + "***@" + parts[1] if len(parts) == 2 else email
+
+mask_email_udf = udf(mask_email, StringType())
+customers_df = customers_df.withColumn("MaskedEmail", mask_email_udf("Email"))
+customers_df.select("Email", "MaskedEmail").show()
+     
++-----------------+----------------+
+|            Email|     MaskedEmail|
++-----------------+----------------+
+|    ali@gmail.com|  a***@gmail.com|
+|   neha@yahoo.com|  n***@yahoo.com|
+| ravi@hotmail.com|r***@hotmail.com|
+|sneha@outlook.com|s***@outlook.com|
+|   amit@gmail.com|  a***@gmail.com|
++-----------------+----------------+
+
+
+# 16. Use concat_ws() to label "Ali from Mumbai"
+customers_df = customers_df.withColumn("Label", concat_ws(" from ", col("Name"), initcap(col("City"))))
+customers_df.select("Label").show()
+
+# 17. Use regexp_replace() to clean product names
+orders_df = orders_df.withColumn("CleanProduct", regexp_replace("Product", "[^a-zA-Z0-9 ]", ""))
+orders_df.select("Product", "CleanProduct").show()
+     
++--------------------+
+|               Label|
++--------------------+
+|     Ali from Mumbai|
+|     Neha from Delhi|
+| Ravi from Bangalore|
+|Sneha from Hyderabad|
+|   Amit from Chennai|
++--------------------+
+
++---------+------------+
+|  Product|CleanProduct|
++---------+------------+
+|   Laptop|      Laptop|
+|    Mouse|       Mouse|
+|   Tablet|      Tablet|
+|Bookshelf|   Bookshelf|
+|    Mixer|       Mixer|
+| Notebook|    Notebook|
+|    Phone|       Phone|
++---------+------------+
+
+
+# 18. Calculate customer age in days
+customers_df = customers_df.withColumn("SignupDate", to_date("SignupDate"))
+customers_df = customers_df.withColumn("DaysSinceSignup", datediff(current_date(), col("SignupDate")))
+customers_df.select("Name", "SignupDate", "DaysSinceSignup").show()
+     
++-----+----------+---------------+
+| Name|SignupDate|DaysSinceSignup|
++-----+----------+---------------+
+|  Ali|2022-05-10|           1121|
+| Neha|2023-01-15|            871|
+| Ravi|2021-11-01|           1311|
+|Sneha|2020-07-22|           1778|
+| Amit|2023-03-10|            817|
++-----+----------+---------------+
